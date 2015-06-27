@@ -1,0 +1,9 @@
+*.pyc
+*.conll*
+*.txt
+*.model
+*.log
+*.tmp
+*.pdf
+*.jar
+tmp/
