@@ -3,6 +3,11 @@ from parser import *
 from sampler import *
 from tree import *
 
+# TODO
+# MIRA or PA
+# finish features
+
+
 def demo(input_file):
     model = Model()
     parser = Parser(model, 1, 1)
@@ -10,7 +15,7 @@ def demo(input_file):
     parser.learn(instances)
 
     for sent in read_sentence(input_file):
-        parser.decode(sent)
+        parser.change_head_stats(sent)
 
 
 

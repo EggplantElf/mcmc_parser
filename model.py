@@ -32,14 +32,14 @@ class Model:
         return self.weights[feat]
 
 
-    def update(self, gold_weights, pred_weights):
+    def update(self, gold_weights, pred_weights, t = 0.1):
         # print 'update'
         for w in gold_weights:
-            w.sadd(1)
-            w.dadd(self.q)
+            w.sadd(t)
+            w.dadd(t * self.q)
         for w in pred_weights:
-            w.sadd(-1)
-            w.dadd(-self.q)
+            w.sadd(-t)
+            w.dadd(-t * self.q)
         # print gold_weights, pred_weights
 
     def qadd(self):

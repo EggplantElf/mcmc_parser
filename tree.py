@@ -22,6 +22,10 @@ class Token:
         else:
             pass
 
+    def __repr__(self):
+        return str(self.tid)
+
+
     def to_str(self):
         if self.conll == 'CoNLL06':
             return '%d\t%s\t%s\t%s\t_\t%s\t%d\t%s\t_\t_' %\

@@ -1,6 +1,7 @@
 from random import random
 from sampler import Sampler
 from extractor import Extractor
+from collections import defaultdict
 
 class Parser:
     def __init__(self, model, temp, c):
@@ -13,32 +14,36 @@ class Parser:
 
         o = open('samples.conll06', 'w')
 
-        seed = self.sampler.random_tree(sent)
+        statistics = {d: {h: 0 for h in sent if h is not d} for d in sent[1:]}
+        trees = defaultdict(int)
+
+        exp_scores = self.extractor.all_exp_scores(sent)
+        seed = self.sampler.random_tree(sent, exp_scores)
         sw = self.extractor.tree_local_weights(seed) # should be global
         ss = self.extractor.tree_score(sw)
 
-        optimal = seed
-        ow = self.extractor.tree_local_weights(seed)
-        os = self.extractor.tree_score(ow)
-
         for i in xrange(num): # or converge
-            tree = self.sampler.propose(sent, seed)
+            tree = self.sampler.propose(sent, seed, exp_scores)
             tw = self.extractor.tree_local_weights(tree)
             ts = self.extractor.tree_score(tw)
-
-            if ts > os:
-                optimal, os = tree, ts
-            if ts > ss:
-            #     or random() < sampler.trans_prob(seed, tree):
+            if ts > ss or random() < self.sampler.trans_prob(seed, tree, ss, ts, exp_scores):
                 seed, ss = tree, ts
 
+
+            for (d, h) in seed.head_map.items():
+                statistics[d][h] += 1
+            trees[self.tree_key(seed)] += 1
+        # print statistics
+        print 'trees:', len(trees)
+        for k, v in sorted(trees.items(), key = lambda x: x[1], reverse = True):
+            print k, '\t', v
+        for d in statistics:
+            for h in statistics[d]:
+                print d, h, exp_scores[d][h], statistics[d][h]
             o.write(tree.to_str())
         o.close()
+
         return optimal
-
-
-
-
 
 
     def learn(self, instances, epochs = 10, num = 10):
@@ -66,15 +71,15 @@ class Parser:
 
                     
                     # C1
-                    if gs - ts < te * 5:
+                    if gs - ts < te:
                         model.update(gw, tw)
 
                     # C2
                     if te < se: # tree > seed
-                        if ts - ss < (se - te) * 5:
+                        if ts - ss < (se - te):
                             model.update(tw, sw)
                     else: # tree <= seed
-                        if ss - ts < (te - se) * 5:
+                        if ss - ts < (te - se):
                             model.update(sw, tw)
 
                     # accept or reject, should be probablistic, deterministic for now
@@ -83,32 +88,62 @@ class Parser:
 
                     model.qadd()
         model.average()
-        model.show()
+        # model.show()
 
 
-    def decode_stats(self, sent, num = 300):
-        all_score = extractor.all_score(sent)
 
 
-        seed = self.sampler.random_tree(sent)
+
+    def change_head_stats(self, sent, num = 500):
+        exp_scores = self.extractor.all_exp_scores(sent)
+        statistics = {d: {h: 0 for h in sent if h is not d} for d in sent[1:]}
+        trees = defaultdict(int)
+
+        seed = self.sampler.random_tree(sent, exp_scores)
         sw = self.extractor.tree_local_weights(seed) # should be global
         ss = self.extractor.tree_score(sw)
 
-        optimal = seed
-        ow = self.extractor.tree_local_weights(seed)
-        os = self.extractor.tree_score(ow)
-
         for i in xrange(num): # or converge
-            tree = self.sampler.propose(sent, seed)
+            tree = self.sampler.propose(sent, seed, exp_scores)
             tw = self.extractor.tree_local_weights(tree)
             ts = self.extractor.tree_score(tw)
 
-            if ts > os:
-                optimal, os = tree, ts
-            if ts > ss:
-            #     or random() < sampler.trans_prob(seed, tree):
+            if ts > ss or random() < self.sampler.trans_prob(seed, tree, ss, ts, exp_scores):
                 seed, ss = tree, ts
 
-        return optimal
+            for (d, h) in seed.head_map.items():
+                statistics[d][h] += 1
+            trees[self.tree_key(seed)] += 1
+
+
+        print 'trees:', len(trees)
+        for k, v in sorted(trees.items(), key = lambda x: x[1], reverse = True):
+            print k, '\t', v
+
+        for d in statistics:
+            for h in statistics[d]:
+                print d, h, exp_scores[d][h], statistics[d][h]
+
+        # return optimal
+
+
+
+    def random_tree_stats(self, sent, num = 100000):
+        exp_scores = self.extractor.all_exp_scores(sent)
+        trees = defaultdict(int)
+
+        for i in xrange(num): # or converge
+            tree = self.sampler.random_tree(sent, exp_scores)
+            trees[self.tree_key(tree)] += 1
+        print 'trees:', len(trees)
+        for k, v in sorted(trees.items(), key = lambda x: x[1], reverse = True):
+            print k, '\t', v
+
+
+    def tree_key(self, tree):
+        return ','.join(['%s<-%s' % (d, h) for (d, h) in sorted(tree.head_map.items())])        
+
+
+
 
 

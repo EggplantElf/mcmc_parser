@@ -1,23 +1,28 @@
+from math import exp
+
 
 # try hash kernel someday
 class Extractor:
     def __init__(self, model):
         self.func = model.map_feat
 
-    def all_score(self, sent):
-        arc_score = {}
+    def all_exp_scores(self, sent):
+        exp_scores = {}
         for d in sent[1:]:
+            exp_scores[d] = {}
             for h in sent:
                 if h is not d:
-                    arc_score[(d, h)] = self.local_score(h, d)
-        return arc_score
+                    exp_scores[d][h] = exp(self.local_score(h, d))
+        return exp_scores
 
+    # use in training, later
     def all_weights(self, sent):
         arc_weights = {}
         for d in sent[1:]:
+            arc_weights[d] = {}
             for h in sent:
                 if h is not d:
-                    arc_weights[(d, h)] = self.weights(h, d)
+                    arc_weights[d][h] = self.weights(h, d)
         return arc_weights
 
     # use lookup cache, fine for now
