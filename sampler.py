@@ -58,7 +58,7 @@ class Sampler:
 
     # note "new" as label to demo the change
     def propose(self, sent, seed, exp_scores = None, num = 2):
-        change = set(sample(sent[1:], num))
+        change = set(sample(sent[1:], min(len(sent[1:]), num)))
         head_map = {d: None for d in sent[1:]}
         in_tree = {d: False for d in sent}
         in_tree[sent[0]] = True
@@ -81,13 +81,17 @@ class Sampler:
         # return tree.get_weights(self.model)
         return tree
 
-    def trans_prob(self, seed, tree, ss, ts, all_exp_scores):
-        diff_ratio = exp(ss - ts) # diff global score
-        for (d, th) in tree.head_map.items():
-            sh = seed.head_map[d]
-            if th is not sh:
-                diff_ratio *= all_exp_scores[d][th] / all_exp_scores[d][sh] # diff local score
-        return diff_ratio # accept ratio: diff (global - local) score 
+    # def trans_prob(self, seed, tree, ss, ts, all_exp_scores):
+    #     diff_ratio = exp(ss - ts) # diff global score
+    #     for (d, th) in tree.head_map.items():
+    #         sh = seed.head_map[d]
+    #         if th is not sh:
+    #             diff_ratio *= all_exp_scores[d][th] / all_exp_scores[d][sh] # diff local score
+    #     return diff_ratio # accept ratio: diff (global - local) score 
+
+    def trans_prob(self, sgs, tgs):
+        return exp(tgs - sgs)
+
 
 class GibbsSampler(Sampler):
     def __init__(self, model):

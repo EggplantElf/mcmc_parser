@@ -1,4 +1,4 @@
-
+from itertools import izip
 
 
 class Token:
@@ -13,6 +13,8 @@ class Token:
             self.lemma = entries[2]
             self.pos = entries[3]
             self.mor = entries[5]
+            self.rsib = None
+            self.lsib = None
             if train:
                 self.hid = int(entries[6])
                 self.label = entries[7]
@@ -24,6 +26,9 @@ class Token:
 
     def __repr__(self):
         return str(self.tid)
+
+    def form_pos(self):
+        return self.form, self.pos
 
 
     def to_str(self):
@@ -50,11 +55,15 @@ class Sentence(list):
     def add_token(self, token):
         self.append(token)
 
-    def add_heads(self):
+    def add_infos(self):
         for d in self[1:]:
             h = self[d.hid]
             d.head = h
             self.arcs.append((d, h))
+        for (l, r) in izip(self[1:], self[2:]):
+            l.rsib = r
+            r.lsib = l
+
 
     def to_str(self):
         return '\n'.join(t.to_str() for t in self[1:]) + '\n\n'
@@ -88,9 +97,6 @@ class Tree:
         self.score = sum(w.s for w in self.weights)
         return self
 
-    def change_head(self, h, d):
-        pass
-
 
 
 def read_sentence(filename, conll = 'CoNLL06', train = True):
@@ -102,7 +108,7 @@ def read_sentence(filename, conll = 'CoNLL06', train = True):
             sentence.add_token(Token(line, conll, train))
         elif len(sentence) != 1:
             if train:
-                sentence.add_heads()
+                sentence.add_infos()
             yield sentence
             sentence = Sentence()
 
